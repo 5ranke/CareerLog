@@ -35,3 +35,28 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### Environment variables / local configuration ###
+.env
+.env.*
+!.env.example
+!.env.sample
+!**/.env.example
+!**/.env.sample
+
+### Secrets and deployment keys ###
+*.pem
+*.key
+*.p12
+*.pfx
+credentials.json
+
+### Logs and runtime files ###
+*.log
+logs/
+*.pid
+*.pid.lock
+
+### OS files ###
+.DS_Store
+Thumbs.db

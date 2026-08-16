@@ -9,7 +9,8 @@ import org.springframework.boot.test.context.SpringBootTest;
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop",
+        "ai.openai.api-key="
 })
 class CareerLogApplicationTests {
 

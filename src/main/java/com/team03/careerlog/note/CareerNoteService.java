@@ -1,10 +1,12 @@
 package com.team03.careerlog.note;
 
 import com.team03.careerlog.ai.OpenAiSummaryClient;
+import com.team03.careerlog.ai.CareerNoteAnalysis;
 import com.team03.careerlog.note.dto.CareerNoteRequest;
 import com.team03.careerlog.note.dto.CareerNoteResponse;
 import com.team03.careerlog.user.User;
 import com.team03.careerlog.user.UserRepository;
+import com.team03.careerlog.profile.CareerProfileService;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +26,16 @@ public class CareerNoteService {
     private final CareerNoteRepository careerNoteRepository;
     private final UserRepository userRepository;
     private final OpenAiSummaryClient openAiSummaryClient;
+    private final CareerProfileService careerProfileService;
 
     public CareerNoteService(CareerNoteRepository careerNoteRepository,
                              UserRepository userRepository,
-                             OpenAiSummaryClient openAiSummaryClient) {
+                             OpenAiSummaryClient openAiSummaryClient,
+                             CareerProfileService careerProfileService) {
         this.careerNoteRepository = careerNoteRepository;
         this.userRepository = userRepository;
         this.openAiSummaryClient = openAiSummaryClient;
+        this.careerProfileService = careerProfileService;
     }
 
     @Transactional
@@ -39,7 +44,7 @@ public class CareerNoteService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         CareerNote note = new CareerNote(user, request.title(), request.content(), request.noteDate());
         careerNoteRepository.save(note);
-        summarizeWithoutBreakingSave(note);
+        analyzeWithoutBreakingSave(user, note);
         return CareerNoteResponse.from(note);
     }
 
@@ -81,9 +86,11 @@ public class CareerNoteService {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "OPENAI_API_KEY가 설정되지 않았습니다.");
         }
 
-        String summary;
+        User user = userRepository.findByLoginId(loginId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
+        CareerNoteAnalysis analysis;
         try {
-            summary = openAiSummaryClient.summarize(note.getTitle(), note.getContent())
+            analysis = openAiSummaryClient.analyze(note.getTitle(), note.getContent())
                     .orElseThrow(() -> new ResponseStatusException(
                             HttpStatus.BAD_GATEWAY, "AI 요약 결과를 받지 못했습니다."));
         } catch (ResponseStatusException exception) {
@@ -92,17 +99,20 @@ public class CareerNoteService {
             log.warn("AI 요약 API 호출에 실패했습니다. noteId={}", noteId, exception);
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "AI 요약 API 호출에 실패했습니다.");
         }
-        note.updateAiSummary(summary);
+        note.updateAiSummary(analysis.summary());
+        careerProfileService.apply(user, analysis);
         return CareerNoteResponse.from(note);
     }
 
-    private void summarizeWithoutBreakingSave(CareerNote note) {
+    private void analyzeWithoutBreakingSave(User user, CareerNote note) {
         if (!openAiSummaryClient.isConfigured()) {
             return;
         }
         try {
-            openAiSummaryClient.summarize(note.getTitle(), note.getContent())
-                    .ifPresent(note::updateAiSummary);
+            openAiSummaryClient.analyze(note.getTitle(), note.getContent()).ifPresent(analysis -> {
+                note.updateAiSummary(analysis.summary());
+                careerProfileService.apply(user, analysis);
+            });
         } catch (RuntimeException exception) {
             log.warn("노트는 저장했지만 AI 요약 생성에 실패했습니다. noteId={}", note.getId(), exception);
         }

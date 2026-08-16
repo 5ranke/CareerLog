@@ -38,4 +38,10 @@ export const api = {
   searchJobs: (from, to) => request('/api/job-recommendations/search', {
     method: 'POST', body: JSON.stringify({ from, to })
   }),
+  createActionPlan: (jobPostingId) => request(`/api/job-postings/${jobPostingId}/action-plan`, { method: 'POST' }),
+  getCalendar: (from, to) => request(`/api/action-plans/calendar?from=${from}&to=${to}`),
+  updateChecklist: (itemId, completed) => request(`/api/checklist-items/${itemId}`, {
+    method: 'PATCH', body: JSON.stringify({ completed })
+  }),
+  deleteActionPlan: (actionPlanId) => request(`/api/action-plans/${actionPlanId}`, { method: 'DELETE' }),
 }

@@ -1,31 +1,40 @@
 import { jobs as mockJobs, references } from './mock-data.js'
 import { api } from './api.js'
 
-const state = { view: 'calendar', notes: {}, jobs: structuredClone(mockJobs), activeJobId: null, selectedJobId: 'ux', completed: {}, range: null, user: null }
+const state = { view: 'calendar', calendarMonth: '2026-08', notes: {}, jobs: structuredClone(mockJobs), selectedJobId: 'ux', checklistItems: [], deadlines: [], range: null, user: null }
 const $ = (selector) => document.querySelector(selector)
-const dateKey = (day) => `2026-08-${String(day).padStart(2, '0')}`
+const dateKey = (day) => `${state.calendarMonth}-${String(day).padStart(2, '0')}`
 const shortDate = (date) => date.slice(5).replace('-', '/')
 const escapeHtml = (value = '') => value.replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char])
-const activeJob = () => state.jobs.find((job) => job.id === state.activeJobId)
 const selectedJob = () => state.jobs.find((job) => job.id === state.selectedJobId)
-const actionTasks = () => activeJob() ? activeJob().tasks.map(([date, title], index) => ({ id: `${activeJob().id}-${index}`, date, title, color: activeJob().color })) : []
+const actionTasks = () => state.checklistItems.map((item) => ({
+  id: item.id, date: item.dueDate, title: item.title,
+  color: item.actionPlanId % 2 === 0 ? 'blue' : 'red', completed: item.completed
+}))
 
 function showView(view) {
   state.view = view
   document.querySelectorAll('.view').forEach((section) => section.classList.toggle('active', section.id === `${view}View`))
   document.querySelectorAll('.nav').forEach((button) => button.classList.toggle('active', button.dataset.view === view))
-  $('#pageTitle').textContent = { calendar: '8월의 취준 캘린더', references: '나를 위한 탐색 레퍼런스', jobs: '지원할 공고와 준비 계획' }[view]
+  const month = Number(state.calendarMonth.slice(5))
+  $('#pageTitle').textContent = { calendar: `${month}월의 취준 캘린더`, references: '나를 위한 탐색 레퍼런스', jobs: '지원할 공고와 준비 계획' }[view]
 }
 
 function renderCalendar() {
   const tasks = actionTasks()
-  const previousMonth = [26, 27, 28, 29, 30, 31].map((day) => `<div class="day muted"><time>${day}</time></div>`).join('')
-  const days = Array.from({ length: 31 }, (_, index) => index + 1).map((day) => {
-    const key = dateKey(day); const note = state.notes[key]; const dayTasks = tasks.filter((task) => task.date === key)
-    return `<div class="day ${day === 16 ? 'today' : ''}" data-date="${key}"><time>${day}</time>${note ? `<button class="event note" data-note="${key}">▣ 취준노트</button>` : ''}${dayTasks.map((task) => `<button class="event ${task.color} ${state.completed[task.id] ? 'done' : ''}" data-task="${task.id}"><input type="checkbox" ${state.completed[task.id] ? 'checked' : ''}>${task.title}</button>`).join('')}</div>`
+  const [year, month] = state.calendarMonth.split('-').map(Number)
+  const firstWeekday = new Date(year, month - 1, 1).getDay()
+  const daysInMonth = new Date(year, month, 0).getDate()
+  const previousDays = new Date(year, month - 1, 0).getDate()
+  const previousMonth = Array.from({ length: firstWeekday }, (_, index) => previousDays - firstWeekday + index + 1)
+    .map((day) => `<div class="day muted"><time>${day}</time></div>`).join('')
+  const today = new Date().toLocaleDateString('en-CA')
+  const days = Array.from({ length: daysInMonth }, (_, index) => index + 1).map((day) => {
+    const key = dateKey(day); const note = state.notes[key]; const dayTasks = tasks.filter((task) => task.date === key); const deadlines = state.deadlines.filter((item) => item.deadline === key)
+    return `<div class="day ${key === today ? 'today' : ''}" data-date="${key}"><time>${day}</time>${note ? `<button class="event note" data-note="${key}">▣ 취준노트</button>` : ''}${dayTasks.map((task) => `<button class="event ${task.color} ${task.completed ? 'done' : ''}" data-task="${task.id}"><input type="checkbox" ${task.completed ? 'checked' : ''}>${escapeHtml(task.title)}</button>`).join('')}${deadlines.map((item) => `<button class="event red" title="채용 마감">◆ ${escapeHtml(item.companyName)} 마감</button>`).join('')}</div>`
   }).join('')
   $('#calendar').innerHTML = previousMonth + days
-  const done = tasks.filter((task) => state.completed[task.id]).length
+  const done = tasks.filter((task) => task.completed).length
   $('#calendarStatus').textContent = tasks.length ? `준비 항목 ${done} / ${tasks.length} 완료` : '아직 진행 중인 지원 준비가 없어요'
 }
 
@@ -37,7 +46,8 @@ function renderJobs() {
   $('#jobList').innerHTML = state.jobs.map((job) => `<button class="job-row ${job.id === state.selectedJobId ? 'active' : ''}" data-job="${job.id}"><small>${job.company}</small><b>${job.title}</b><span>마감 ${shortDate(job.deadline)}</span></button>`).join('')
   const job = selectedJob()
   if (!job) return
-  $('#jobDetail').innerHTML = `<p class="deadline">마감 ${job.deadline.replaceAll('-', '.')}</p><h2>${job.company} ${job.title}</h2><h4>공고가 요구하는 것</h4><ul>${job.requirements.map((item) => `<li>✓ ${item}</li>`).join('')}</ul><div class="match"><b>내 취준노트와 연결되는 점</b>${job.match}</div><div class="detail-footer"><small>준비 계획은 마감일을 기준으로 캘린더에 배치돼요.</small><button class="primary start-job" data-job="${job.id}">지원 준비 시작 →</button></div>`
+  const registered = state.deadlines.some((item) => String(item.jobPostingId) === String(job.id))
+  $('#jobDetail').innerHTML = `<p class="deadline">마감 ${job.deadline.replaceAll('-', '.')}</p><h2>${job.company} ${job.title}</h2><h4>공고가 요구하는 것</h4><ul>${job.requirements.map((item) => `<li>✓ ${item}</li>`).join('')}</ul><div class="match"><b>내 취준노트와 연결되는 점</b>${job.match}</div><div class="detail-footer"><small>등록을 선택하면 마감일과 매일의 준비 항목이 캘린더에 추가돼요.</small><button class="primary start-job" data-job="${job.id}">${registered ? '캘린더에서 보기' : '지원 준비 등록'} →</button></div>`
   $('#sideJobList').innerHTML = state.jobs.map((job) => `<button class="side-card job" data-side-job="${job.id}"><small>${job.company}</small><b>${job.title}</b></button>`).join('')
 }
 
@@ -77,9 +87,52 @@ function toDraft(note) {
 }
 
 async function loadNotes() {
-  const notes = await api.getNotes('2026-08-01', '2026-08-31')
+  const { from, to } = monthRange()
+  const notes = await api.getNotes(from, to)
   state.notes = Object.fromEntries(notes.map((note) => [note.noteDate, toDraft(note)]))
   renderCalendar()
+}
+
+async function loadActionCalendar() {
+  const { from, to } = monthRange()
+  const calendar = await api.getCalendar(from, to)
+  state.checklistItems = calendar.checklistItems
+  state.deadlines = calendar.deadlines
+  renderCalendar(); renderJobs()
+}
+
+function monthRange() {
+  const [year, month] = state.calendarMonth.split('-').map(Number)
+  const lastDay = new Date(year, month, 0).getDate()
+  return { from: `${state.calendarMonth}-01`, to: `${state.calendarMonth}-${String(lastDay).padStart(2, '0')}` }
+}
+
+async function loadMonth() {
+  await Promise.all([loadNotes(), loadActionCalendar()])
+  showView('calendar')
+}
+
+async function moveMonth(offset) {
+  const [year, month] = state.calendarMonth.split('-').map(Number)
+  const target = new Date(year, month - 1 + offset, 1)
+  state.calendarMonth = `${target.getFullYear()}-${String(target.getMonth() + 1).padStart(2, '0')}`
+  await loadMonth()
+}
+
+function openActionPlanModal(job) {
+  const existing = state.deadlines.find((item) => String(item.jobPostingId) === String(job.id))
+  if (existing) return showView('calendar')
+  const root = $('#modalRoot')
+  root.innerHTML = `<div class="backdrop"><section class="modal"><button class="close close-modal">×</button><p class="eyebrow">ACTION PLAN</p><h2>${escapeHtml(job.company)} ${escapeHtml(job.title)}</h2><p class="modal-lead">이 공고와 준비 체크리스트를 내 캘린더에 등록할까요?</p><div class="job-preview"><span class="red-dot"></span><div><small>마감 ${job.deadline}</small><b>오늘부터 마감일까지 매일 한 가지</b><p>공고 분석, 경험 정리, 이력서·자기소개서 보완, 최종 제출 순서로 생성됩니다.</p></div></div><p class="auth-error" id="planError"></p><div class="modal-actions"><button class="text close-modal">등록하지 않기</button><button class="primary confirm-plan">공고와 체크리스트 등록 →</button></div></section></div>`
+  $('.confirm-plan').onclick = async () => {
+    const button = $('.confirm-plan'); button.disabled = true; button.textContent = '체크리스트 생성 중...'
+    try {
+      await api.createActionPlan(job.id)
+      state.calendarMonth = job.deadline.slice(0, 7)
+      root.innerHTML = ''; await loadMonth()
+    } catch (error) { $('#planError').textContent = '체크리스트를 생성하지 못했습니다.'; button.disabled = false }
+  }
+  root.querySelectorAll('.close-modal').forEach((button) => button.onclick = () => root.innerHTML = '')
 }
 
 function openNoteModal(date, draft = state.notes[date]) {
@@ -118,7 +171,7 @@ function showAuthModal() {
     try {
       if (signup) await api.signup(input)
       state.user = await api.login(input)
-      root.innerHTML = ''; applyUser(); await loadNotes()
+      root.innerHTML = ''; applyUser(); await Promise.all([loadNotes(), loadActionCalendar()])
     } catch (error) {
       $('#authError').textContent = signup && error.status === 409
         ? '이미 사용 중인 아이디입니다.'
@@ -138,17 +191,24 @@ document.addEventListener('click', (event) => {
   const view = event.target.closest('[data-view]'); if (view) showView(view.dataset.view)
   const day = event.target.closest('.day[data-date]'); if (day && !event.target.closest('button')) openNoteModal(day.dataset.date)
   const note = event.target.closest('[data-note]'); if (note) openNoteModal(note.dataset.note)
-  const task = event.target.closest('[data-task]'); if (task) { state.completed[task.dataset.task] = !state.completed[task.dataset.task]; renderCalendar() }
+  const task = event.target.closest('[data-task]'); if (task) {
+    const item = state.checklistItems.find((candidate) => String(candidate.id) === task.dataset.task)
+    if (item) api.updateChecklist(item.id, !item.completed).then(loadActionCalendar).catch((error) => alert(error.message))
+  }
   const job = event.target.closest('[data-job]'); if (job) { state.selectedJobId = job.dataset.job; renderJobs() }
   const sideJob = event.target.closest('[data-side-job]'); if (sideJob) { state.selectedJobId = sideJob.dataset.sideJob; renderJobs(); showView('jobs') }
+  const startJob = event.target.closest('.start-job'); if (startJob) openActionPlanModal(selectedJob())
+  if (event.target.closest('.month-prev')) moveMonth(-1)
+  if (event.target.closest('.month-next')) moveMonth(1)
 })
 
 $('#openPrep').onclick = openPreparationModal
 
 async function start() {
+  $('#calendarStatus').insertAdjacentHTML('beforebegin', '<span class="month-nav"><button class="outline month-prev">‹</button> <button class="outline month-next">›</button></span>')
   renderCalendar(); renderReferences(); renderJobs()
   await api.init()
-  try { state.user = await api.me(); applyUser(); await loadNotes() } catch (error) { if (error.status === 401) showAuthModal(); else alert(error.message) }
+  try { state.user = await api.me(); applyUser(); await loadMonth() } catch (error) { if (error.status === 401) showAuthModal(); else alert(error.message) }
 }
 
 start()

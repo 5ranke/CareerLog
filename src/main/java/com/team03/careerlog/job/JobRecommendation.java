@@ -50,6 +50,8 @@ public class JobRecommendation {
     }
 
     public JobPosting getJobPosting() { return jobPosting; }
+    public Long getId() { return id; }
+    public User getUser() { return user; }
     public String getRecommendationReason() { return recommendationReason; }
     public String getStatus() { return status; }
 }

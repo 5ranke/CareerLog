@@ -33,7 +33,10 @@ public class SecurityConfig {
                 .cors(cors -> {})
                 .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/csrf", "/api/auth/signup", "/api/auth/login", "/error").permitAll()
+                        .requestMatchers(
+                                "/", "/index.html", "/styles.css", "/js/**", "/favicon.ico",
+                                "/api/auth/csrf", "/api/auth/signup", "/api/auth/login", "/error"
+                        ).permitAll()
                         .anyRequest().authenticated())
                 .exceptionHandling(exceptions -> exceptions
                         .authenticationEntryPoint((request, response, exception) -> response.sendError(SC_UNAUTHORIZED))

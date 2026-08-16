@@ -39,3 +39,11 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+tasks.named('processResources') {
+    from('frontend') {
+        into 'static'
+        exclude '.gitignore', 'README.md'
+        exclude 'js/api.js', 'js/app.js'
+    }
+}

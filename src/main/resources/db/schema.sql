@@ -54,7 +54,7 @@ CREATE TABLE career_notes (
 
                               user_id BIGINT NOT NULL,
 
-                              title VARCHAR(200),
+                              title TEXT,
 
     -- 긴 줄글이므로 TEXT 사용
                               content TEXT NOT NULL,

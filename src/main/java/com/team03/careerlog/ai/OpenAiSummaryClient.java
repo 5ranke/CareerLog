@@ -13,7 +13,7 @@ import java.util.Optional;
 @Component
 public class OpenAiSummaryClient {
 
-    private static final int MAX_INPUT_LENGTH = 6_000;
+    private static final int MAX_INPUT_LENGTH = 2_000;
 
     private static final String INSTRUCTIONS = """
             당신은 사용자의 취업 준비 기록을 사실 그대로 구조화하는 도우미입니다.

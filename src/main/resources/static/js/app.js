@@ -2,7 +2,7 @@ import { jobs as mockJobs, references } from './mock-data.js'
 import { api } from './api.js'
 
 const currentMonth = new Date().toLocaleDateString('en-CA').slice(0, 7)
-const state = { view: 'calendar', calendarMonth: currentMonth, notes: {}, jobs: structuredClone(mockJobs), selectedJobId: 'ux', checklistItems: [], deadlines: [], range: null, user: null }
+const state = { view: 'calendar', calendarMonth: currentMonth, notes: {}, jobs: structuredClone(mockJobs), selectedJobId: 'ux', checklistItems: [], deadlines: [], range: null, user: null, pendingChecklist: new Set() }
 const $ = (selector) => document.querySelector(selector)
 const dateKey = (day) => `${state.calendarMonth}-${String(day).padStart(2, '0')}`
 const shortDate = (date) => date.slice(5).replace('-', '/')
@@ -32,7 +32,7 @@ function renderCalendar() {
   const today = new Date().toLocaleDateString('en-CA')
   const days = Array.from({ length: daysInMonth }, (_, index) => index + 1).map((day) => {
     const key = dateKey(day); const note = state.notes[key]; const dayTasks = tasks.filter((task) => task.date === key); const deadlines = state.deadlines.filter((item) => item.deadline === key)
-    return `<div class="day ${key === today ? 'today' : ''}" data-date="${key}"><time>${day}</time>${note ? `<button class="event note" data-note="${key}">▣ 취준노트</button>` : ''}${dayTasks.map((task) => `<button class="event ${task.color} ${task.completed ? 'done' : ''}" data-task="${task.id}"><input type="checkbox" ${task.completed ? 'checked' : ''}>${escapeHtml(task.title)}</button>`).join('')}${deadlines.map((item) => `<button class="event red" title="채용 마감">◆ ${escapeHtml(item.companyName)} 마감</button>`).join('')}</div>`
+    return `<div class="day ${key === today ? 'today' : ''}" data-date="${key}"><time>${day}</time>${note ? `<button class="event note" data-note="${key}">▣ 취준노트</button>` : ''}${dayTasks.map((task) => `<button type="button" class="event ${task.color} ${task.completed ? 'done' : ''}" data-task="${task.id}" role="checkbox" aria-checked="${task.completed}" ${state.pendingChecklist.has(String(task.id)) ? 'disabled' : ''}><span aria-hidden="true">${task.completed ? '☑' : '☐'}</span> ${escapeHtml(task.title)}</button>`).join('')}${deadlines.map((item) => `<button class="event red" title="채용 마감">◆ ${escapeHtml(item.companyName)} 마감</button>`).join('')}</div>`
   }).join('')
   $('#calendar').innerHTML = previousMonth + days
   const done = tasks.filter((task) => task.completed).length
@@ -206,8 +206,18 @@ document.addEventListener('click', (event) => {
   const day = event.target.closest('.day[data-date]'); if (day && !event.target.closest('button')) openNoteModal(day.dataset.date)
   const note = event.target.closest('[data-note]'); if (note) openNoteModal(note.dataset.note)
   const task = event.target.closest('[data-task]'); if (task) {
+    event.preventDefault(); event.stopPropagation()
     const item = state.checklistItems.find((candidate) => String(candidate.id) === task.dataset.task)
-    if (item) api.updateChecklist(item.id, !item.completed).then(loadActionCalendar).catch((error) => alert(error.message))
+    if (item && !state.pendingChecklist.has(String(item.id))) {
+      const itemId = String(item.id)
+      state.pendingChecklist.add(itemId); renderCalendar()
+      api.updateChecklist(item.id, !item.completed).then((updated) => {
+        const target = state.checklistItems.find((candidate) => String(candidate.id) === String(updated.id))
+        if (target) target.completed = updated.completed
+      }).catch((error) => alert(error.message)).finally(() => {
+        state.pendingChecklist.delete(itemId); renderCalendar()
+      })
+    }
   }
   const job = event.target.closest('[data-job]'); if (job) { state.selectedJobId = job.dataset.job; renderJobs() }
   const sideJob = event.target.closest('[data-side-job]'); if (sideJob) { state.selectedJobId = sideJob.dataset.sideJob; renderJobs(); showView('jobs') }

@@ -29,7 +29,7 @@ public class CareerNote {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(length = 200)
+    @Column(columnDefinition = "TEXT")
     private String title;
 
     @Column(nullable = false, columnDefinition = "TEXT")
@@ -92,7 +92,8 @@ public class CareerNote {
                 .filter(value -> value != null && !value.isBlank()).map(String::trim).distinct()
                 .limit(10).reduce((left, right) -> left + "\n" + right).orElse(null);
         this.reaction = normalize(analysis.reaction());
-        this.reason = normalize(analysis.reason());
+        // reason은 추론 대상이 아니라 사용자가 직접 작성한 답변만 보존한다.
+        this.reason = inputReason;
     }
 
     @PreUpdate

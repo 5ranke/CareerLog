@@ -47,8 +47,9 @@ function renderJobs() {
   $('#jobList').innerHTML = state.jobs.map((job) => `<button class="job-row ${job.id === state.selectedJobId ? 'active' : ''}" data-job="${job.id}"><small>${job.company}</small><b>${job.title}</b><span>마감 ${shortDate(job.deadline)}</span></button>`).join('')
   const job = selectedJob()
   if (!job) return
+  const searchableJob = /^\d+$/.test(String(job.id))
   const plan = state.actionPlans.find((item) => String(item.jobPostingId) === String(job.id))
-  $('#jobDetail').innerHTML = `<p class="deadline">마감 ${job.deadline.replaceAll('-', '.')}</p><h2>${job.company} ${job.title}</h2><h4>공고가 요구하는 것</h4><ul>${job.requirements.map((item) => `<li>✓ ${item}</li>`).join('')}</ul><div class="match"><b>내 취준노트와 연결되는 점</b>${job.match}</div><div class="detail-footer"><small>등록을 선택하면 마감일과 매일의 준비 항목이 캘린더에 추가돼요.</small><div>${plan ? `<button class="danger delete-job" data-plan="${plan.id}">지원 공고 삭제</button> ` : ''}<button class="primary start-job" data-job="${job.id}">${plan ? '캘린더에서 보기' : '지원 준비 등록'} →</button></div></div>`
+  $('#jobDetail').innerHTML = `<p class="deadline">마감 ${job.deadline.replaceAll('-', '.')}</p><h2>${job.company} ${job.title}</h2><h4>공고가 요구하는 것</h4><ul>${job.requirements.map((item) => `<li>✓ ${item}</li>`).join('')}</ul><div class="match"><b>내 취준노트와 연결되는 점</b>${job.match}</div><div class="detail-footer"><small>${searchableJob ? '등록을 선택하면 마감일과 매일의 준비 항목이 캘린더에 추가돼요.' : '취준노트 기간을 선택해 실제 추천 공고를 먼저 불러와 주세요.'}</small><div>${plan ? `<button class="danger delete-job" data-plan="${plan.id}">지원 공고 삭제</button> ` : ''}<button class="primary ${searchableJob ? 'start-job' : 'search-job'}" data-job="${job.id}">${searchableJob ? (plan ? '캘린더에서 보기' : '지원 준비 등록') : '공고 탐색 먼저'} →</button></div></div>`
   $('#sideJobList').innerHTML = state.jobs.map((job) => `<button class="side-card job" data-side-job="${job.id}"><small>${job.company}</small><b>${job.title}</b></button>`).join('')
 }
 
@@ -239,6 +240,7 @@ document.addEventListener('click', (event) => {
   const job = event.target.closest('[data-job]'); if (job) { state.selectedJobId = job.dataset.job; renderJobs() }
   const sideJob = event.target.closest('[data-side-job]'); if (sideJob) { state.selectedJobId = sideJob.dataset.sideJob; renderJobs(); showView('jobs') }
   const startJob = event.target.closest('.start-job'); if (startJob) openActionPlanModal(selectedJob())
+  const searchJob = event.target.closest('.search-job'); if (searchJob) openPreparationModal()
   const deleteJob = event.target.closest('.delete-job'); if (deleteJob) {
     const job = selectedJob()
     if (confirm('이 지원 공고를 삭제할까요? 연결된 체크리스트도 모두 삭제됩니다.')) {

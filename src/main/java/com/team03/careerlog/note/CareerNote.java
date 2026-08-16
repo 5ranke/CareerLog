@@ -14,6 +14,8 @@ import jakarta.persistence.Table;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
 
 @Entity
 @Table(name = "career_notes")
@@ -39,6 +41,21 @@ public class CareerNote {
     @Column(name = "ai_summary", columnDefinition = "TEXT")
     private String aiSummary;
 
+    @Column(name = "input_reason", columnDefinition = "TEXT")
+    private String inputReason;
+
+    @Column(columnDefinition = "TEXT")
+    private String experience;
+
+    @Column(columnDefinition = "TEXT")
+    private String activities;
+
+    @Column(columnDefinition = "TEXT")
+    private String reaction;
+
+    @Column(name = "structured_reason", columnDefinition = "TEXT")
+    private String reason;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -49,22 +66,33 @@ public class CareerNote {
     }
 
     public CareerNote(User user, String title, String content, LocalDate noteDate) {
+        this(user, title, content, null, noteDate);
+    }
+
+    public CareerNote(User user, String whatDidYouDo, String memorablePoint, String inputReason, LocalDate noteDate) {
         this.user = user;
-        this.title = normalizeTitle(title);
-        this.content = content;
+        this.title = normalizeTitle(whatDidYouDo);
+        this.content = memorablePoint;
+        this.inputReason = normalize(inputReason);
         this.noteDate = noteDate;
         this.createdAt = LocalDateTime.now();
         this.updatedAt = this.createdAt;
     }
 
-    public void update(String title, String content, LocalDate noteDate) {
-        this.title = normalizeTitle(title);
-        this.content = content;
+    public void update(String whatDidYouDo, String memorablePoint, String inputReason, LocalDate noteDate) {
+        this.title = normalizeTitle(whatDidYouDo);
+        this.content = memorablePoint;
+        this.inputReason = normalize(inputReason);
         this.noteDate = noteDate;
     }
 
-    public void updateAiSummary(String aiSummary) {
-        this.aiSummary = aiSummary;
+    public void applyAnalysis(com.team03.careerlog.ai.CareerNoteAnalysis analysis) {
+        this.experience = normalize(analysis.experience());
+        this.activities = analysis.activities() == null ? null : analysis.activities().stream()
+                .filter(value -> value != null && !value.isBlank()).map(String::trim).distinct()
+                .limit(10).reduce((left, right) -> left + "\n" + right).orElse(null);
+        this.reaction = normalize(analysis.reaction());
+        this.reason = normalize(analysis.reason());
     }
 
     @PreUpdate
@@ -74,6 +102,10 @@ public class CareerNote {
 
     private static String normalizeTitle(String title) {
         return title == null || title.isBlank() ? null : title.trim();
+    }
+
+    private static String normalize(String value) {
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     public Long getId() {
@@ -95,6 +127,14 @@ public class CareerNote {
     public String getAiSummary() {
         return aiSummary;
     }
+
+    public String getInputReason() { return inputReason; }
+    public String getExperience() { return experience; }
+    public List<String> getActivities() {
+        return activities == null || activities.isBlank() ? List.of() : Arrays.asList(activities.split("\\n"));
+    }
+    public String getReaction() { return reaction; }
+    public String getReason() { return reason; }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;

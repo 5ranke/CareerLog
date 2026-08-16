@@ -7,8 +7,9 @@ import jakarta.validation.constraints.Size;
 import java.time.LocalDate;
 
 public record CareerNoteRequest(
-        @Size(max = 200) String title,
-        @NotBlank @Size(max = 20_000) String content,
+        @NotBlank @Size(max = 20_000) String whatDidYouDo,
+        @NotBlank @Size(max = 20_000) String memorablePoint,
+        @Size(max = 20_000) String reason,
         @NotNull LocalDate noteDate
 ) {
 }

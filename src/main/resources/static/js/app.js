@@ -1,7 +1,8 @@
 import { jobs as mockJobs, references } from './mock-data.js'
 import { api } from './api.js'
 
-const state = { view: 'calendar', calendarMonth: '2026-08', notes: {}, jobs: structuredClone(mockJobs), selectedJobId: 'ux', checklistItems: [], deadlines: [], range: null, user: null }
+const currentMonth = new Date().toLocaleDateString('en-CA').slice(0, 7)
+const state = { view: 'calendar', calendarMonth: currentMonth, notes: {}, jobs: structuredClone(mockJobs), selectedJobId: 'ux', checklistItems: [], deadlines: [], range: null, user: null }
 const $ = (selector) => document.querySelector(selector)
 const dateKey = (day) => `${state.calendarMonth}-${String(day).padStart(2, '0')}`
 const shortDate = (date) => date.slice(5).replace('-', '/')
@@ -83,7 +84,18 @@ function openPreparationModal() {
 }
 
 function toDraft(note) {
-  return { id: note.id, exploration: note.title ?? '', scene: note.content ?? '', reaction: note.aiSummary ?? '', question: '' }
+  return {
+    id: note.id,
+    whatDidYouDo: note.whatDidYouDo ?? '',
+    memorablePoint: note.memorablePoint ?? '',
+    inputReason: note.inputReason ?? '',
+    analysis: {
+      experience: note.experience,
+      activities: note.activities ?? [],
+      reaction: note.reaction,
+      reason: note.reason
+    }
+  }
 }
 
 async function loadNotes() {
@@ -138,16 +150,18 @@ function openActionPlanModal(job) {
 function openNoteModal(date, draft = state.notes[date]) {
   const existing = Boolean(draft); let editing = !existing
   const root = $('#modalRoot'); const value = (key) => escapeHtml(draft?.[key] ?? '')
-  root.innerHTML = `<div class="backdrop"><section class="modal"><button class="close close-modal">×</button><p class="eyebrow">${date.replaceAll('-', '.')}</p><h2 id="noteModalTitle">${existing ? '취준노트' : '오늘의 취준노트'}</h2><p class="modal-lead">작은 탐색도 다음 선택의 근거가 됩니다.</p><label>오늘 한 탐색<textarea id="exploration">${value('exploration')}</textarea></label><label>상세 기록<textarea id="scene">${value('scene')}</textarea></label><label>AI 요약<textarea id="reaction" disabled>${value('reaction')}</textarea></label><div class="modal-actions"><button class="danger delete-note" ${existing ? '' : 'hidden'}>삭제</button><span class="spacer"></span><button class="text close-modal">취소</button><button class="outline edit-note" ${existing ? '' : 'hidden'}>수정하기</button><button class="primary save-note">취준노트 저장 →</button></div></section></div>`
-  const fields = [$('#exploration'), $('#scene')]
+  const analysis = draft?.analysis
+  const analysisHtml = existing && analysis?.experience ? `<div class="match"><b>AI 구조화 결과</b><p><strong>경험</strong> ${escapeHtml(analysis.experience ?? '')}</p><p><strong>구체 활동</strong> ${(analysis.activities ?? []).map(escapeHtml).join(', ') || '-'}</p><p><strong>생각·반응</strong> ${escapeHtml(analysis.reaction ?? '-') }</p><p><strong>작성한 이유</strong> ${escapeHtml(analysis.reason ?? '-')}</p></div>` : ''
+  root.innerHTML = `<div class="backdrop"><section class="modal"><button class="close close-modal">×</button><p class="eyebrow">${date.replaceAll('-', '.')}</p><h2 id="noteModalTitle">${existing ? '취준노트' : '오늘의 취준노트'}</h2><p class="modal-lead">기록한 내용만 바탕으로 AI가 경험을 구조화해요.</p><label>오늘 취준과 관련해서 무엇을 했거나 접했나요?<textarea id="whatDidYouDo">${value('whatDidYouDo')}</textarea></label><label>그중 어떤 점이 가장 기억에 남았나요?<textarea id="memorablePoint">${value('memorablePoint')}</textarea></label><label>왜 그렇게 느꼈던 것 같나요? <small>(선택)</small><textarea id="inputReason">${value('inputReason')}</textarea></label>${analysisHtml}<div class="modal-actions"><button class="danger delete-note" ${existing ? '' : 'hidden'}>삭제</button><span class="spacer"></span><button class="text close-modal">취소</button><button class="outline edit-note" ${existing ? '' : 'hidden'}>수정하기</button><button class="primary save-note">취준노트 저장 →</button></div></section></div>`
+  const fields = [$('#whatDidYouDo'), $('#memorablePoint'), $('#inputReason')]
   const applyMode = () => { fields.forEach((field) => field.disabled = !editing); $('.save-note').hidden = !editing; $('.edit-note').hidden = !existing || editing }
   applyMode()
   $('.edit-note').onclick = () => { editing = true; applyMode() }
   $('.save-note').onclick = async () => {
     const button = $('.save-note'); button.disabled = true; button.textContent = 'AI 분석 중...'
-    const payload = { title: $('#exploration').value || '취준노트', content: $('#scene').value, noteDate: date }
+    const payload = { whatDidYouDo: $('#whatDidYouDo').value, memorablePoint: $('#memorablePoint').value, reason: $('#inputReason').value || null, noteDate: date }
     try {
-      if (!payload.content.trim()) return alert('상세 기록을 입력해주세요.')
+      if (!payload.whatDidYouDo.trim() || !payload.memorablePoint.trim()) return alert('첫 번째와 두 번째 질문에 답해주세요.')
       if (existing) await api.updateNote(draft.id, payload); else await api.createNote(payload)
       root.innerHTML = ''; await loadNotes()
     } catch (error) { alert(error.message) } finally { button.disabled = false }
@@ -171,7 +185,7 @@ function showAuthModal() {
     try {
       if (signup) await api.signup(input)
       state.user = await api.login(input)
-      root.innerHTML = ''; applyUser(); await Promise.all([loadNotes(), loadActionCalendar()])
+      root.innerHTML = ''; applyUser(); await loadMonth()
     } catch (error) {
       $('#authError').textContent = signup && error.status === 409
         ? '이미 사용 중인 아이디입니다.'

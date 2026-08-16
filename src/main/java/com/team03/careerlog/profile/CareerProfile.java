@@ -1,6 +1,5 @@
 package com.team03.careerlog.profile;
 
-import com.team03.careerlog.ai.CareerNoteAnalysis;
 import com.team03.careerlog.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -14,9 +13,6 @@ import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.LinkedHashSet;
 
 @Entity
 @Table(name = "career_profiles")
@@ -51,30 +47,6 @@ public class CareerProfile {
     public CareerProfile(User user) {
         this.user = user;
         this.updatedAt = LocalDateTime.now();
-    }
-
-    public void apply(CareerNoteAnalysis analysis) {
-        preferredJobs = merge(preferredJobs, analysis.preferredJobs());
-        interests = merge(interests, analysis.interests());
-        workPreferences = merge(workPreferences, analysis.workPreferences());
-        if (analysis.summary() != null && !analysis.summary().isBlank()) {
-            String accumulated = summary == null ? analysis.summary() : summary + " " + analysis.summary();
-            summary = accumulated.length() > 2_000
-                    ? accumulated.substring(accumulated.length() - 2_000)
-                    : accumulated;
-        }
-        updatedAt = LocalDateTime.now();
-    }
-
-    private String merge(String current, Collection<String> additions) {
-        LinkedHashSet<String> values = new LinkedHashSet<>();
-        if (current != null && !current.isBlank()) {
-            values.addAll(Arrays.asList(current.split(",\\s*")));
-        }
-        if (additions != null) {
-            additions.stream().filter(value -> value != null && !value.isBlank()).map(String::trim).forEach(values::add);
-        }
-        return values.isEmpty() ? null : String.join(", ", values);
     }
 
     @PreUpdate

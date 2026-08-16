@@ -65,6 +65,15 @@ CREATE TABLE career_notes (
     -- 해당 노트에 대한 AI 요약
                               ai_summary TEXT,
 
+    -- 사용자가 직접 작성한 세 번째 질문의 답변
+                              input_reason TEXT,
+
+    -- LLM이 사실 기반으로 구조화한 결과
+                              experience TEXT,
+                              activities TEXT,
+                              reaction TEXT,
+                              structured_reason TEXT,
+
                               created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                               updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

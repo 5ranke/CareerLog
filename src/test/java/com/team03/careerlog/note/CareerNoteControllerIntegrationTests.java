@@ -60,27 +60,30 @@ class CareerNoteControllerIntegrationTests {
                         .with(csrf())
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"title":"오늘의 기록","content":"Spring Security를 공부했다.","noteDate":"2026-08-16"}
+                                {"whatDidYouDo":"Spring Security를 공부했다.","memorablePoint":"세션 인증 흐름이 기억에 남았다.","reason":"직접 연결해 봤기 때문에","noteDate":"2026-08-16"}
                                 """))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.title").value("오늘의 기록"))
-                .andExpect(jsonPath("$.aiSummary").doesNotExist());
+                .andExpect(jsonPath("$.whatDidYouDo").value("Spring Security를 공부했다."))
+                .andExpect(jsonPath("$.memorablePoint").value("세션 인증 흐름이 기억에 남았다."))
+                .andExpect(jsonPath("$.inputReason").value("직접 연결해 봤기 때문에"))
+                .andExpect(jsonPath("$.experience").doesNotExist());
 
         Long noteId = careerNoteRepository.findAll().get(0).getId();
 
         mockMvc.perform(get("/api/career-notes/{noteId}", noteId).with(user("user_one")))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").value("Spring Security를 공부했다."));
+                .andExpect(jsonPath("$.memorablePoint").value("세션 인증 흐름이 기억에 남았다."));
 
         mockMvc.perform(put("/api/career-notes/{noteId}", noteId)
                         .with(user("user_one"))
                         .with(csrf())
                         .contentType(APPLICATION_JSON)
                         .content("""
-                                {"title":"수정한 기록","content":"취준노트 API를 완성했다.","noteDate":"2026-08-17"}
+                                {"whatDidYouDo":"취준노트 API를 완성했다.","memorablePoint":"입력 구조를 분리했다.","reason":null,"noteDate":"2026-08-17"}
                                 """))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.title").value("수정한 기록"))
+                .andExpect(jsonPath("$.whatDidYouDo").value("취준노트 API를 완성했다."))
+                .andExpect(jsonPath("$.inputReason").doesNotExist())
                 .andExpect(jsonPath("$.noteDate").value("2026-08-17"));
 
         mockMvc.perform(delete("/api/career-notes/{noteId}", noteId)
@@ -105,8 +108,8 @@ class CareerNoteControllerIntegrationTests {
                         .param("to", "2026-08-16"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(2))
-                .andExpect(jsonPath("$[0].title").value("8월 16일"))
-                .andExpect(jsonPath("$[1].title").value("8월 1일"));
+                .andExpect(jsonPath("$[0].whatDidYouDo").value("8월 16일"))
+                .andExpect(jsonPath("$[1].whatDidYouDo").value("8월 1일"));
     }
 
     @Test

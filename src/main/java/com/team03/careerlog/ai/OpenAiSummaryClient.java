@@ -16,11 +16,15 @@ public class OpenAiSummaryClient {
     private static final int MAX_INPUT_LENGTH = 6_000;
 
     private static final String INSTRUCTIONS = """
-            당신은 취업 준비 기록을 정리하는 도우미입니다.
-            입력에 없는 사실은 만들지 말고 반드시 아래 JSON 형식만 반환하세요.
-            summary는 오늘 수행한 활동, 배운 점과 다음 행동을 한국어 2문장 이내로 요약하세요.
-            나머지 배열에는 노트에서 명확히 드러난 항목만 최대 5개까지 넣으세요.
-            {"summary":"요약","preferredJobs":["관심 직무"],"interests":["관심 요소"],"workPreferences":["업무 환경 선호"]}
+            당신은 사용자의 취업 준비 기록을 사실 그대로 구조화하는 도우미입니다.
+            사용자의 성향, 능력, 적합 직무를 추론하지 마세요.
+            입력에 명시되지 않은 사실, 감정, 이유를 임의로 만들지 마세요.
+            experience는 사용자가 수행하거나 접한 경험입니다.
+            activities는 그 경험에서 수행하거나 주목한 구체적인 활동만 문자열 배열로 작성합니다.
+            reaction은 활동에 대해 사용자가 직접 밝힌 생각이나 반응입니다. 확인할 수 없으면 null입니다.
+            reason은 사용자가 직접 작성한 반응 이유입니다. 세 번째 답변이 없으면 반드시 null입니다.
+            마크다운 없이 다음 키만 포함한 JSON 객체 하나를 반환하세요.
+            {"experience":"경험 또는 null","activities":["구체적 활동"],"reaction":"반응 또는 null","reason":"직접 작성한 이유 또는 null"}
             """;
 
     private final RestClient restClient;
@@ -41,21 +45,22 @@ public class OpenAiSummaryClient {
         return apiKey != null && !apiKey.isBlank();
     }
 
-    public Optional<CareerNoteAnalysis> analyze(String title, String content) {
+    public Optional<CareerNoteAnalysis> analyze(String whatDidYouDo, String memorablePoint, String reason) {
         if (!isConfigured()) {
             return Optional.empty();
         }
 
-        String limitedContent = content.length() > MAX_INPUT_LENGTH
-                ? content.substring(0, MAX_INPUT_LENGTH)
-                : content;
-        String input = (title == null || title.isBlank() ? "" : "제목: " + title + "\n")
-                + "내용: " + limitedContent;
+        String input = "1. 오늘 취준과 관련해서 무엇을 했거나 접했나요?\n"
+                + limit(whatDidYouDo) + "\n\n"
+                + "2. 그중 어떤 점이 가장 기억에 남았나요?\n"
+                + limit(memorablePoint) + "\n\n"
+                + "3. 왜 그렇게 느꼈던 것 같나요? (선택)\n"
+                + (reason == null || reason.isBlank() ? "[작성하지 않음]" : limit(reason));
         Map<String, Object> request = Map.of(
                 "model", model,
                 "instructions", INSTRUCTIONS,
                 "input", input,
-                "max_output_tokens", 350
+                "max_output_tokens", 250
         );
 
         Map<?, ?> response = restClient.post()
@@ -88,5 +93,10 @@ public class OpenAiSummaryClient {
             }
         }
         return Optional.empty();
+    }
+
+    private String limit(String value) {
+        if (value == null) return "";
+        return value.length() > MAX_INPUT_LENGTH ? value.substring(0, MAX_INPUT_LENGTH) : value;
     }
 }

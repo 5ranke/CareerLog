@@ -32,7 +32,7 @@ function renderCalendar() {
   const today = new Date().toLocaleDateString('en-CA')
   const days = Array.from({ length: daysInMonth }, (_, index) => index + 1).map((day) => {
     const key = dateKey(day); const note = state.notes[key]; const dayTasks = tasks.filter((task) => task.date === key); const deadlines = state.deadlines.filter((item) => item.deadline === key)
-    return `<div class="day ${key === today ? 'today' : ''}" data-date="${key}"><time>${day}</time>${note ? `<button class="event note" data-note="${key}">▣ 취준노트</button>` : ''}${dayTasks.map((task) => `<div class="checklist-row event ${task.color} ${task.completed ? 'done' : ''}"><button type="button" class="check-toggle" data-task="${task.id}" role="checkbox" aria-checked="${task.completed}" ${state.pendingChecklist.has(String(task.id)) ? 'disabled' : ''}><span aria-hidden="true">${task.completed ? '☑' : '☐'}</span> ${escapeHtml(task.title)}</button><button type="button" class="delete-checklist" data-delete-task="${task.id}" title="체크리스트 삭제" aria-label="${escapeHtml(task.title)} 삭제">×</button></div>`).join('')}${deadlines.map((item) => `<button class="event red" title="채용 마감">◆ ${escapeHtml(item.companyName)} 마감</button>`).join('')}</div>`
+    return `<div class="day ${key === today ? 'today' : ''}" data-date="${key}"><time>${day}</time>${note ? `<button class="event note" data-note="${key}">▣ 취준노트</button>` : ''}${dayTasks.map((task) => `<div class="checklist-row event ${task.color} ${task.completed ? 'done' : ''}"><button type="button" class="check-toggle" data-task="${task.id}" role="checkbox" aria-checked="${task.completed}" ${state.pendingChecklist.has(String(task.id)) ? 'disabled' : ''}><span aria-hidden="true">${task.completed ? '☑' : '☐'}</span> ${escapeHtml(task.title)}</button><button type="button" class="delete-checklist" data-delete-task="${task.id}" title="체크리스트 삭제" aria-label="${escapeHtml(task.title)} 삭제">×</button></div>`).join('')}${deadlines.map((item) => `<div class="checklist-row event red" title="채용 마감"><span class="deadline-label">◆ ${escapeHtml(item.companyName)} 마감</span><button type="button" class="delete-checklist" data-delete-calendar-plan="${item.actionPlanId}" title="지원 공고 삭제" aria-label="${escapeHtml(item.companyName)} 지원 공고 삭제">×</button></div>`).join('')}</div>`
   }).join('')
   $('#calendar').innerHTML = previousMonth + days
   const done = tasks.filter((task) => task.completed).length
@@ -216,6 +216,12 @@ document.addEventListener('click', (event) => {
       api.deleteChecklist(deleteTask.dataset.deleteTask).then(loadActionCalendar).catch((error) => alert(error.message))
     }
   }
+  const deleteCalendarPlan = event.target.closest('[data-delete-calendar-plan]'); if (deleteCalendarPlan) {
+    event.preventDefault(); event.stopPropagation()
+    if (confirm('이 지원 공고를 삭제할까요? 관련 체크리스트도 모두 삭제됩니다.')) {
+      api.deleteActionPlan(deleteCalendarPlan.dataset.deleteCalendarPlan).then(loadMonth).catch((error) => alert(error.message))
+    }
+  }
   const task = event.target.closest('[data-task]'); if (task) {
     event.preventDefault(); event.stopPropagation()
     const item = state.checklistItems.find((candidate) => String(candidate.id) === task.dataset.task)
@@ -250,7 +256,7 @@ document.addEventListener('click', (event) => {
 $('#openPrep').onclick = openPreparationModal
 
 async function start() {
-  document.head.insertAdjacentHTML('beforeend', '<style>.checklist-row{display:flex!important;align-items:flex-start;padding:0!important}.check-toggle{flex:1;border:0;background:transparent;color:inherit;text-align:left;padding:6px;font:inherit;cursor:pointer}.delete-checklist{flex:0 0 auto;border:0;background:transparent;color:#a84d48;padding:4px 6px;font-size:16px;line-height:1;cursor:pointer}.delete-checklist:hover{background:rgba(168,77,72,.12)}.checklist-row.done .check-toggle{text-decoration:line-through}</style>')
+  document.head.insertAdjacentHTML('beforeend', '<style>.checklist-row{display:flex!important;align-items:flex-start;padding:0!important}.check-toggle,.deadline-label{flex:1;border:0;background:transparent;color:inherit;text-align:left;padding:6px;font:inherit;cursor:pointer}.deadline-label{cursor:default}.delete-checklist{flex:0 0 auto;border:0;background:transparent;color:#a84d48;padding:4px 6px;font-size:16px;line-height:1;cursor:pointer}.delete-checklist:hover{background:rgba(168,77,72,.12)}.checklist-row.done .check-toggle{text-decoration:line-through}</style>')
   $('#calendarStatus').insertAdjacentHTML('beforebegin', '<span class="month-nav"><button class="outline month-prev">‹</button> <button class="outline month-next">›</button></span>')
   renderCalendar(); renderReferences(); renderJobs()
   await api.init()

@@ -86,12 +86,24 @@ public class ActionPlanService {
         return new CalendarResponse(deadlines, items);
     }
 
+    public List<ActionPlanResponse> getAll(String loginId) {
+        return actionPlanRepository.findAllByJobRecommendationUserLoginId(loginId).stream()
+                .map(this::response).toList();
+    }
+
     @Transactional
     public ChecklistItemResponse updateChecklist(String loginId, Long itemId, boolean completed) {
         ChecklistItem item = checklistRepository.findByIdAndActionPlanJobRecommendationUserLoginId(itemId, loginId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         item.setCompleted(completed);
         return ChecklistItemResponse.from(item);
+    }
+
+    @Transactional
+    public void deleteChecklist(String loginId, Long itemId) {
+        ChecklistItem item = checklistRepository.findByIdAndActionPlanJobRecommendationUserLoginId(itemId, loginId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        checklistRepository.delete(item);
     }
 
     @Transactional

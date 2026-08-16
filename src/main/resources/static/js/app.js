@@ -2,7 +2,7 @@ import { jobs as mockJobs, references } from './mock-data.js'
 import { api } from './api.js'
 
 const currentMonth = new Date().toLocaleDateString('en-CA').slice(0, 7)
-const state = { view: 'calendar', calendarMonth: currentMonth, notes: {}, jobs: structuredClone(mockJobs), selectedJobId: 'ux', checklistItems: [], deadlines: [], range: null, user: null, pendingChecklist: new Set() }
+const state = { view: 'calendar', calendarMonth: currentMonth, notes: {}, jobs: structuredClone(mockJobs), selectedJobId: 'ux', checklistItems: [], deadlines: [], actionPlans: [], range: null, user: null, pendingChecklist: new Set() }
 const $ = (selector) => document.querySelector(selector)
 const dateKey = (day) => `${state.calendarMonth}-${String(day).padStart(2, '0')}`
 const shortDate = (date) => date.slice(5).replace('-', '/')
@@ -32,7 +32,7 @@ function renderCalendar() {
   const today = new Date().toLocaleDateString('en-CA')
   const days = Array.from({ length: daysInMonth }, (_, index) => index + 1).map((day) => {
     const key = dateKey(day); const note = state.notes[key]; const dayTasks = tasks.filter((task) => task.date === key); const deadlines = state.deadlines.filter((item) => item.deadline === key)
-    return `<div class="day ${key === today ? 'today' : ''}" data-date="${key}"><time>${day}</time>${note ? `<button class="event note" data-note="${key}">▣ 취준노트</button>` : ''}${dayTasks.map((task) => `<button type="button" class="event ${task.color} ${task.completed ? 'done' : ''}" data-task="${task.id}" role="checkbox" aria-checked="${task.completed}" ${state.pendingChecklist.has(String(task.id)) ? 'disabled' : ''}><span aria-hidden="true">${task.completed ? '☑' : '☐'}</span> ${escapeHtml(task.title)}</button>`).join('')}${deadlines.map((item) => `<button class="event red" title="채용 마감">◆ ${escapeHtml(item.companyName)} 마감</button>`).join('')}</div>`
+    return `<div class="day ${key === today ? 'today' : ''}" data-date="${key}"><time>${day}</time>${note ? `<button class="event note" data-note="${key}">▣ 취준노트</button>` : ''}${dayTasks.map((task) => `<div class="checklist-row event ${task.color} ${task.completed ? 'done' : ''}"><button type="button" class="check-toggle" data-task="${task.id}" role="checkbox" aria-checked="${task.completed}" ${state.pendingChecklist.has(String(task.id)) ? 'disabled' : ''}><span aria-hidden="true">${task.completed ? '☑' : '☐'}</span> ${escapeHtml(task.title)}</button><button type="button" class="delete-checklist" data-delete-task="${task.id}" title="체크리스트 삭제" aria-label="${escapeHtml(task.title)} 삭제">×</button></div>`).join('')}${deadlines.map((item) => `<button class="event red" title="채용 마감">◆ ${escapeHtml(item.companyName)} 마감</button>`).join('')}</div>`
   }).join('')
   $('#calendar').innerHTML = previousMonth + days
   const done = tasks.filter((task) => task.completed).length
@@ -47,8 +47,8 @@ function renderJobs() {
   $('#jobList').innerHTML = state.jobs.map((job) => `<button class="job-row ${job.id === state.selectedJobId ? 'active' : ''}" data-job="${job.id}"><small>${job.company}</small><b>${job.title}</b><span>마감 ${shortDate(job.deadline)}</span></button>`).join('')
   const job = selectedJob()
   if (!job) return
-  const registered = state.deadlines.some((item) => String(item.jobPostingId) === String(job.id))
-  $('#jobDetail').innerHTML = `<p class="deadline">마감 ${job.deadline.replaceAll('-', '.')}</p><h2>${job.company} ${job.title}</h2><h4>공고가 요구하는 것</h4><ul>${job.requirements.map((item) => `<li>✓ ${item}</li>`).join('')}</ul><div class="match"><b>내 취준노트와 연결되는 점</b>${job.match}</div><div class="detail-footer"><small>등록을 선택하면 마감일과 매일의 준비 항목이 캘린더에 추가돼요.</small><button class="primary start-job" data-job="${job.id}">${registered ? '캘린더에서 보기' : '지원 준비 등록'} →</button></div>`
+  const plan = state.actionPlans.find((item) => String(item.jobPostingId) === String(job.id))
+  $('#jobDetail').innerHTML = `<p class="deadline">마감 ${job.deadline.replaceAll('-', '.')}</p><h2>${job.company} ${job.title}</h2><h4>공고가 요구하는 것</h4><ul>${job.requirements.map((item) => `<li>✓ ${item}</li>`).join('')}</ul><div class="match"><b>내 취준노트와 연결되는 점</b>${job.match}</div><div class="detail-footer"><small>등록을 선택하면 마감일과 매일의 준비 항목이 캘린더에 추가돼요.</small><div>${plan ? `<button class="danger delete-job" data-plan="${plan.id}">지원 공고 삭제</button> ` : ''}<button class="primary start-job" data-job="${job.id}">${plan ? '캘린더에서 보기' : '지원 준비 등록'} →</button></div></div>`
   $('#sideJobList').innerHTML = state.jobs.map((job) => `<button class="side-card job" data-side-job="${job.id}"><small>${job.company}</small><b>${job.title}</b></button>`).join('')
 }
 
@@ -113,6 +113,11 @@ async function loadActionCalendar() {
   renderCalendar(); renderJobs()
 }
 
+async function loadActionPlans() {
+  state.actionPlans = await api.getActionPlans()
+  renderJobs()
+}
+
 function monthRange() {
   const [year, month] = state.calendarMonth.split('-').map(Number)
   const lastDay = new Date(year, month, 0).getDate()
@@ -120,7 +125,7 @@ function monthRange() {
 }
 
 async function loadMonth() {
-  await Promise.all([loadNotes(), loadActionCalendar()])
+  await Promise.all([loadNotes(), loadActionCalendar(), loadActionPlans()])
   showView('calendar')
 }
 
@@ -132,7 +137,7 @@ async function moveMonth(offset) {
 }
 
 function openActionPlanModal(job) {
-  const existing = state.deadlines.find((item) => String(item.jobPostingId) === String(job.id))
+  const existing = state.actionPlans.find((item) => String(item.jobPostingId) === String(job.id))
   if (existing) return showView('calendar')
   const root = $('#modalRoot')
   root.innerHTML = `<div class="backdrop"><section class="modal"><button class="close close-modal">×</button><p class="eyebrow">ACTION PLAN</p><h2>${escapeHtml(job.company)} ${escapeHtml(job.title)}</h2><p class="modal-lead">이 공고와 준비 체크리스트를 내 캘린더에 등록할까요?</p><div class="job-preview"><span class="red-dot"></span><div><small>마감 ${job.deadline}</small><b>오늘부터 마감일까지 매일 한 가지</b><p>공고 분석, 경험 정리, 이력서·자기소개서 보완, 최종 제출 순서로 생성됩니다.</p></div></div><p class="auth-error" id="planError"></p><div class="modal-actions"><button class="text close-modal">등록하지 않기</button><button class="primary confirm-plan">공고와 체크리스트 등록 →</button></div></section></div>`
@@ -152,7 +157,7 @@ function openNoteModal(date, draft = state.notes[date]) {
   const root = $('#modalRoot'); const value = (key) => escapeHtml(draft?.[key] ?? '')
   const analysis = draft?.analysis
   const analysisHtml = existing && analysis?.experience ? `<div class="match"><b>AI 구조화 결과</b><p><strong>경험</strong> ${escapeHtml(analysis.experience ?? '')}</p><p><strong>구체 활동</strong> ${(analysis.activities ?? []).map(escapeHtml).join(', ') || '-'}</p><p><strong>생각·반응</strong> ${escapeHtml(analysis.reaction ?? '-') }</p><p><strong>작성한 이유</strong> ${escapeHtml(analysis.reason ?? '-')}</p></div>` : ''
-  root.innerHTML = `<div class="backdrop"><section class="modal"><button class="close close-modal">×</button><p class="eyebrow">${date.replaceAll('-', '.')}</p><h2 id="noteModalTitle">${existing ? '취준노트' : '오늘의 취준노트'}</h2><p class="modal-lead">기록한 내용만 바탕으로 AI가 경험을 구조화해요.</p><label>오늘 취준과 관련해서 무엇을 했거나 접했나요?<textarea id="whatDidYouDo">${value('whatDidYouDo')}</textarea></label><label>그중 어떤 점이 가장 기억에 남았나요?<textarea id="memorablePoint">${value('memorablePoint')}</textarea></label><label>왜 그렇게 느꼈던 것 같나요? <small>(선택)</small><textarea id="inputReason">${value('inputReason')}</textarea></label>${analysisHtml}<div class="modal-actions"><button class="danger delete-note" ${existing ? '' : 'hidden'}>삭제</button><span class="spacer"></span><button class="text close-modal">취소</button><button class="outline edit-note" ${existing ? '' : 'hidden'}>수정하기</button><button class="primary save-note">취준노트 저장 →</button></div></section></div>`
+  root.innerHTML = `<div class="backdrop"><section class="modal"><button class="close close-modal">×</button><p class="eyebrow">${date.replaceAll('-', '.')}</p><h2 id="noteModalTitle">${existing ? '취준노트' : '오늘의 취준노트'}</h2><p class="modal-lead">기록한 내용만 바탕으로 AI가 경험을 구조화해요.</p><label>오늘 취준과 관련해서 무엇을 했거나 접했나요?<textarea id="whatDidYouDo">${value('whatDidYouDo')}</textarea></label><label>그중 어떤 점이 가장 기억에 남았나요?<textarea id="memorablePoint">${value('memorablePoint')}</textarea></label><label>왜 그렇게 느꼈던 것 같나요? <small>(선택)</small><textarea id="inputReason">${value('inputReason')}</textarea></label>${analysisHtml}<div class="modal-actions"><button class="danger delete-note" ${existing ? '' : 'hidden'}>삭제</button><span class="spacer"></span><button class="text close-modal">취소</button><button class="outline edit-note" ${existing ? '' : 'hidden'}>취준노트 수정</button><button class="primary save-note">취준노트 저장 →</button></div></section></div>`
   const fields = [$('#whatDidYouDo'), $('#memorablePoint'), $('#inputReason')]
   const applyMode = () => { fields.forEach((field) => field.disabled = !editing); $('.save-note').hidden = !editing; $('.edit-note').hidden = !existing || editing }
   applyMode()
@@ -205,6 +210,12 @@ document.addEventListener('click', (event) => {
   const view = event.target.closest('[data-view]'); if (view) showView(view.dataset.view)
   const day = event.target.closest('.day[data-date]'); if (day && !event.target.closest('button')) openNoteModal(day.dataset.date)
   const note = event.target.closest('[data-note]'); if (note) openNoteModal(note.dataset.note)
+  const deleteTask = event.target.closest('[data-delete-task]'); if (deleteTask) {
+    event.preventDefault(); event.stopPropagation()
+    if (confirm('이 체크리스트를 삭제할까요?')) {
+      api.deleteChecklist(deleteTask.dataset.deleteTask).then(loadActionCalendar).catch((error) => alert(error.message))
+    }
+  }
   const task = event.target.closest('[data-task]'); if (task) {
     event.preventDefault(); event.stopPropagation()
     const item = state.checklistItems.find((candidate) => String(candidate.id) === task.dataset.task)
@@ -222,6 +233,16 @@ document.addEventListener('click', (event) => {
   const job = event.target.closest('[data-job]'); if (job) { state.selectedJobId = job.dataset.job; renderJobs() }
   const sideJob = event.target.closest('[data-side-job]'); if (sideJob) { state.selectedJobId = sideJob.dataset.sideJob; renderJobs(); showView('jobs') }
   const startJob = event.target.closest('.start-job'); if (startJob) openActionPlanModal(selectedJob())
+  const deleteJob = event.target.closest('.delete-job'); if (deleteJob) {
+    const job = selectedJob()
+    if (confirm('이 지원 공고를 삭제할까요? 연결된 체크리스트도 모두 삭제됩니다.')) {
+      api.deleteActionPlan(deleteJob.dataset.plan).then(async () => {
+        state.jobs = state.jobs.filter((item) => item.id !== job.id)
+        state.selectedJobId = state.jobs[0]?.id ?? null
+        await loadMonth()
+      }).catch((error) => alert(error.message))
+    }
+  }
   if (event.target.closest('.month-prev')) moveMonth(-1)
   if (event.target.closest('.month-next')) moveMonth(1)
 })
@@ -229,6 +250,7 @@ document.addEventListener('click', (event) => {
 $('#openPrep').onclick = openPreparationModal
 
 async function start() {
+  document.head.insertAdjacentHTML('beforeend', '<style>.checklist-row{display:flex!important;align-items:flex-start;padding:0!important}.check-toggle{flex:1;border:0;background:transparent;color:inherit;text-align:left;padding:6px;font:inherit;cursor:pointer}.delete-checklist{flex:0 0 auto;border:0;background:transparent;color:#a84d48;padding:4px 6px;font-size:16px;line-height:1;cursor:pointer}.delete-checklist:hover{background:rgba(168,77,72,.12)}.checklist-row.done .check-toggle{text-decoration:line-through}</style>')
   $('#calendarStatus').insertAdjacentHTML('beforebegin', '<span class="month-nav"><button class="outline month-prev">‹</button> <button class="outline month-next">›</button></span>')
   renderCalendar(); renderReferences(); renderJobs()
   await api.init()

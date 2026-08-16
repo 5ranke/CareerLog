@@ -39,9 +39,11 @@ export const api = {
     method: 'POST', body: JSON.stringify({ from, to })
   }),
   createActionPlan: (jobPostingId) => request(`/api/job-postings/${jobPostingId}/action-plan`, { method: 'POST' }),
+  getActionPlans: () => request('/api/action-plans'),
   getCalendar: (from, to) => request(`/api/action-plans/calendar?from=${from}&to=${to}`),
   updateChecklist: (itemId, completed) => request(`/api/checklist-items/${itemId}`, {
     method: 'PATCH', body: JSON.stringify({ completed })
   }),
+  deleteChecklist: (itemId) => request(`/api/checklist-items/${itemId}`, { method: 'DELETE' }),
   deleteActionPlan: (actionPlanId) => request(`/api/action-plans/${actionPlanId}`, { method: 'DELETE' }),
 }

@@ -19,6 +19,7 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -40,10 +41,21 @@ public class ActionPlanController {
         return service.calendar(auth.getName(), from, to);
     }
 
+    @GetMapping("/action-plans")
+    public List<ActionPlanResponse> getAll(Authentication auth) {
+        return service.getAll(auth.getName());
+    }
+
     @PatchMapping("/checklist-items/{itemId}")
     public ChecklistItemResponse update(Authentication auth, @PathVariable Long itemId,
                                          @RequestBody ChecklistUpdateRequest request) {
         return service.updateChecklist(auth.getName(), itemId, request.completed());
+    }
+
+    @DeleteMapping("/checklist-items/{itemId}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteChecklist(Authentication auth, @PathVariable Long itemId) {
+        service.deleteChecklist(auth.getName(), itemId);
     }
 
     @DeleteMapping("/action-plans/{actionPlanId}")

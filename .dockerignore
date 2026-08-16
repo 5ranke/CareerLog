@@ -1,0 +1,14 @@
+.git
+.github
+.gradle
+build
+out
+.idea
+.vscode
+.env
+.env.*
+!.env.example
+*.log
+*.pem
+*.key
+node_modules

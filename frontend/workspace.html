@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>나의 워크스페이스 | 취뽀log</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar">
+        <a class="brand" href="./index.html" style="color:inherit;text-decoration:none">◒ <b>취뽀log</b><small>career workspace</small></a>
+        <div class="profile"><span>서</span><div><b>서연의 탐색</b><p>UX · 서비스 기획</p></div></div>
+        <nav><button class="nav active" data-view="calendar">▦ <span>캘린더</span></button><button class="nav" data-view="references">✦ <span>레퍼런스</span><em>6</em></button><button class="nav" data-view="jobs">▣ <span>채용 공고</span><em>2</em></button></nav>
+        <section class="side-section"><div class="side-heading">✦ 레퍼런스 <button data-view="references">전체 보기</button></div><button class="side-card" data-view="references"><small>현직자 인터뷰</small><b>UX 리서처의 하루</b></button><button class="side-card" data-view="references"><small>브이로그</small><b>인하우스 UX 팀의 협업</b></button></section>
+        <section class="side-section"><div class="side-heading">▣ 지원 준비 <button data-view="jobs">전체 보기</button></div><div id="sideJobList"></div></section>
+        <div class="tip">✦ <p><b>이번 주 탐색</b><br />레퍼런스 2개를 보고, 취준노트에 남겨보세요.</p></div>
+      </aside>
+      <main>
+        <header><div><p class="eyebrow">MY CAREER WORKSPACE</p><h1 id="pageTitle">8월의 취준 캘린더</h1></div><button class="primary" id="openPrep">지원 준비 시작 →</button></header>
+        <section id="calendarView" class="view active"><div class="calendar-meta"><span>● 취준노트　<span class="red-text">●</span> A회사 UX 리서처 준비　<span class="blue-text">●</span> 서비스 기획 준비</span><span id="calendarStatus">아직 진행 중인 지원 준비가 없어요</span></div><div class="weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div class="calendar" id="calendar"></div><p class="hint">날짜의 빈 공간을 누르면 그날의 취준노트를 작성할 수 있어요.</p></section>
+        <section id="referencesView" class="view"><div class="section-head"><div><p class="eyebrow">PHASE 2 · EXPLORE</p><h2>취준노트가 가리키는 다음 탐색</h2><p>최근 일주일의 노트에서 반복된 관심과 행동을 바탕으로 정리했어요.</p></div></div><div class="signals"><div>01　<b>사용자 불편 관찰</b><small>8/12 · 8/15 노트</small></div><div>02　<b>정보를 구조화하는 일</b><small>8/13 · 8/15 노트</small></div></div><div class="ref-grid" id="referenceGrid"></div></section>
+        <section id="jobsView" class="view"><div class="section-head"><div><p class="eyebrow">PHASE 3 · APPLY</p><h2>탐색을 지원 준비로 연결하기</h2><p>공고를 선택하면 마감일까지의 준비 항목을 캘린더에 추가해요.</p></div></div><div class="job-layout"><div class="job-list" id="jobList"></div><article class="job-detail" id="jobDetail"></article></div></section>
+      </main>
+    </div>
+    <div id="modalRoot"></div>
+    <script type="module" src="./js/app.js"></script>
+  </body>
+</html>

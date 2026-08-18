@@ -34,7 +34,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/", "/index.html", "/styles.css", "/js/**", "/favicon.ico",
+                                "/", "/index.html", "/workspace.html", "/styles.css", "/landing.css", "/js/**", "/favicon.ico",
                                 "/api/auth/csrf", "/api/auth/signup", "/api/auth/login", "/error"
                         ).permitAll()
                         .anyRequest().authenticated())

@@ -3,33 +3,108 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>취준노트 | CareerLog</title>
-    <link rel="stylesheet" href="./styles.css" />
+    <meta name="description" content="흩어진 취업 준비 경험을 기록하고, 나다운 다음 행동으로 연결하는 AI 커리어 워크스페이스 취뽀log" />
+    <title>취뽀log — 기록이 방향이 되는 취업 준비</title>
+    <link rel="stylesheet" href="./landing.css" />
+    <style>
+      .hero-visual { min-height: 630px; }
+      .hero-visual .app-preview {
+        left: 1%;
+        top: 42px;
+        width: 98%;
+        height: 450px;
+        transform: none;
+      }
+      .hero-visual .ai-card,
+      .hero-visual .plan-card {
+        top: 450px;
+        bottom: auto;
+        width: 245px;
+        min-height: 112px;
+        padding: 16px;
+        align-items: flex-start;
+        border-left: 0;
+        border-top: 3px solid;
+      }
+      .hero-visual .ai-card { left: 14%; border-top-color: var(--sage); }
+      .hero-visual .plan-card { right: 6%; border-top-color: var(--coral); }
+      .hero-visual .ai-card > span,
+      .hero-visual .plan-card > span {
+        flex: 0 0 31px;
+        width: 31px;
+        height: 31px;
+        border-radius: 0;
+        margin: 0 12px 0 0;
+      }
+      .hero-visual .ai-card > div,
+      .hero-visual .plan-card > div { flex: 1; }
+      .hero-visual .ai-card strong,
+      .hero-visual .plan-card strong { min-height: 33px; }
+      @media (max-width: 620px) {
+        .hero-visual { min-height: 430px; margin-top: 30px; }
+        .hero-visual .app-preview { left: 0; top: 28px; width: 100%; height: 305px; }
+        .hero-visual .ai-card { top: 300px; bottom: auto; left: 5%; transform-origin: left top; }
+        .hero-visual .plan-card { top: 300px; bottom: auto; right: 0; transform-origin: right top; }
+      }
+    </style>
   </head>
   <body>
-    <div class="app">
-      <aside class="sidebar">
-        <div class="brand">◒ <b>취준노트</b><small>career workspace</small></div>
-        <div class="profile"><span>서</span><div><b>서연의 탐색</b><p>UX · 서비스 기획</p></div></div>
-        <nav>
-          <button class="nav active" data-view="calendar">▦ <span>캘린더</span></button>
-          <button class="nav" data-view="references">✦ <span>레퍼런스</span><em>6</em></button>
-          <button class="nav" data-view="jobs">▣ <span>채용 공고</span><em>2</em></button>
-        </nav>
-        <section class="side-section"><div class="side-heading">✦ 레퍼런스 <button data-view="references">전체 보기</button></div><button class="side-card" data-view="references"><small>현직자 인터뷰</small><b>UX 리서처의 하루</b></button><button class="side-card" data-view="references"><small>브이로그</small><b>인하우스 UX 팀의 협업</b></button></section>
-        <section class="side-section"><div class="side-heading">▣ 지원 준비 <button data-view="jobs">전체 보기</button></div><div id="sideJobList"></div></section>
-        <div class="tip">✦ <p><b>이번 주 탐색</b><br />레퍼런스 2개를 보고, 취준노트에 남겨보세요.</p></div>
-      </aside>
+    <header class="site-header">
+      <a class="logo" href="#top" aria-label="취뽀log 홈"><span class="logo-mark">C</span><strong>취뽀<span>log</span></strong></a>
+      <nav aria-label="주요 메뉴"><a href="#why">서비스 소개</a><a href="#flow">이용 방법</a><a href="#features">핵심 기능</a></nav>
+      <a class="header-cta" href="./workspace.html">무료로 시작하기 <span>↗</span></a>
+    </header>
 
-      <main>
-        <header><div><p class="eyebrow">MY CAREER WORKSPACE</p><h1 id="pageTitle">8월의 취준 캘린더</h1></div><button class="primary" id="openPrep">지원 준비 시작 →</button></header>
-        <section id="calendarView" class="view active"><div class="calendar-meta"><span>● 취준노트　<span class="red-text">●</span> A회사 UX 리서처 준비　<span class="blue-text">●</span> 서비스 기획 준비</span><span id="calendarStatus">아직 진행 중인 지원 준비가 없어요</span></div><div class="weekdays"><span>일</span><span>월</span><span>화</span><span>수</span><span>목</span><span>금</span><span>토</span></div><div class="calendar" id="calendar"></div><p class="hint">날짜의 빈 공간을 누르면 그날의 취준노트를 작성할 수 있어요.</p></section>
-        <section id="referencesView" class="view"><div class="section-head"><div><p class="eyebrow">PHASE 2 · EXPLORE</p><h2>취준노트가 가리키는 다음 탐색</h2><p>최근 일주일의 노트에서 반복된 관심과 행동을 바탕으로 정리했어요.</p></div></div><div class="signals"><div>01　<b>사용자 불편 관찰</b><small>8/12 · 8/15 노트</small></div><div>02　<b>정보를 구조화하는 일</b><small>8/13 · 8/15 노트</small></div></div><div class="ref-grid" id="referenceGrid"></div></section>
-        <section id="jobsView" class="view"><div class="section-head"><div><p class="eyebrow">PHASE 3 · APPLY</p><h2>탐색을 지원 준비로 연결하기</h2><p>공고를 선택하면 마감일까지의 준비 항목을 캘린더에 추가해요.</p></div></div><div class="job-layout"><div class="job-list" id="jobList"></div><article class="job-detail" id="jobDetail"></article></div></section>
-      </main>
-    </div>
+    <main id="top">
+      <section class="hero">
+        <div class="hero-copy">
+          <p class="kicker"><span></span> AI CAREER WORKSPACE</p>
+          <h1>오늘의 작은 경험이<br /><em>내일의 방향</em>이 되도록.</h1>
+          <p class="hero-description">막막한 취업 준비, 정답부터 찾지 마세요.<br />취뽀log는 매일의 기록에서 나만의 기준을 발견하고<br class="desktop-only" /> 실제 지원까지 이어지게 합니다.</p>
+          <div class="hero-actions"><a class="button primary" href="./workspace.html">나의 첫 기록 남기기 <span>→</span></a><a class="text-link" href="#flow">어떻게 작동하나요? <span>↓</span></a></div>
+        </div>
 
-    <div id="modalRoot"></div>
-    <script type="module" src="./js/app.js"></script>
+        <div class="hero-visual" aria-label="취뽀log 캘린더 화면 미리보기">
+          <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div>
+          <div class="app-preview">
+            <div class="preview-sidebar"><div class="preview-logo">C</div><i></i><i class="active"></i><i></i><i></i><div class="preview-avatar">서</div></div>
+            <div class="preview-main">
+              <div class="preview-top"><div><small>MY CAREER WORKSPACE</small><b>8월의 취준 캘린더</b></div><button>+ 취준노트</button></div>
+              <div class="week-row"><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span></div>
+              <div class="calendar-demo">
+                <div><small>11</small></div><div><small>12</small><p class="note green">● 사용자 인터뷰 정리</p></div><div><small>13</small><p class="note navy">● 포트폴리오 구조 잡기</p></div><div><small>14</small></div><div><small>15</small><p class="note coral">● A사 공고 분석</p></div>
+                <div><small>18</small><p class="note navy">● 취준노트</p></div><div><small>19</small></div><div class="selected"><small>20</small><span>+</span></div><div><small>21</small><p class="note green">● UX 아티클 읽기</p></div><div><small>22</small></div>
+              </div>
+            </div>
+          </div>
+          <aside class="ai-card"><span class="spark">✦</span><div><small>AI INSIGHT</small><strong>기록에서 발견한<br />나의 관심 신호</strong><p>“사용자의 불편을 관찰하고<br />정보를 구조화하는 일”</p></div></aside>
+          <aside class="plan-card"><span>✓</span><div><small>NEXT ACTION</small><strong>포트폴리오 초안 만들기</strong><p>D-7 · 오늘 할 일</p></div></aside>
+        </div>
+      </section>
+
+      <section class="statement" id="why">
+        <p class="section-label">WHY CAREERLOG</p>
+        <h2>취업 준비는 스펙을 채우는 일이 아니라,<br /><span>나만의 기준을 발견하는 과정</span>이니까.</h2>
+        <div class="statement-grid"><p>우리는 단 한 번의 검사나 점수로 당신을 정의하지 않아요.</p><p>대신 당신이 보고, 느끼고, 시도한 경험을 차곡차곡 모아<br />스스로 더 좋은 선택을 할 수 있는 근거로 바꿉니다.</p></div>
+      </section>
+
+      <section class="flow" id="flow">
+        <div class="section-heading"><div><p class="section-label">HOW IT WORKS</p><h2>기록에서 지원까지,<br />끊기지 않는 하나의 흐름</h2></div><p>복잡한 취업 준비를 세 단계로 정리했어요.<br />당신은 오늘의 경험을 솔직하게 남기기만 하면 됩니다.</p></div>
+        <div class="steps">
+          <article><span class="step-no">01</span><div class="step-icon">✎</div><p class="step-tag">RECORD</p><h3>오늘의 경험을 기록해요</h3><p>작은 활동과 그때 든 생각을 캘린더에 가볍게 남겨보세요.</p><div class="mini-note"><small>8월 20일 · 취준노트</small><b>현직자 인터뷰 영상을 봤다.</b><p>실제 사용자 목소리를 듣는 과정이 인상 깊었다.</p></div></article>
+          <article><span class="step-no">02</span><div class="step-icon">✦</div><p class="step-tag">DISCOVER</p><h3>AI가 나의 신호를 찾아요</h3><p>기록 속 반복되는 관심과 행동을 구조화해 탐색할 방향을 제안해요.</p><div class="signal-bars"><span style="--size:88%">사용자 관찰 <b>88</b></span><span style="--size:72%">정보 구조화 <b>72</b></span><span style="--size:61%">협업 경험 <b>61</b></span></div></article>
+          <article><span class="step-no">03</span><div class="step-icon">↗</div><p class="step-tag">ACT</p><h3>다음 행동으로 연결해요</h3><p>나와 맞닿은 공고를 찾고, 마감일까지의 준비 계획을 만들어드려요.</p><div class="mini-plan"><small>A사 · UX 리서처</small><b>D-7 포트폴리오 초안</b><span>오늘</span><i></i><p>다음: 지원 동기 구체화</p></div></article>
+        </div>
+      </section>
+
+      <section class="features" id="features">
+        <div><p class="section-label light">ALL IN ONE PLACE</p><h2>흩어진 취업 준비를<br />하나의 캘린더에.</h2><p>기록도, 탐색도, 지원 일정도 따로 관리할 필요 없어요.<br />모든 과정이 연결될 때 나의 성장이 선명해집니다.</p><a class="button light-button" href="./workspace.html">워크스페이스 둘러보기 <span>→</span></a></div>
+        <ul><li><span>01</span><div><b>취준노트</b><p>매일의 활동과 감정을 부담 없이 기록</p></div><em>✎</em></li><li><span>02</span><div><b>AI 인사이트</b><p>쌓인 기록 속 경험과 관심사를 구조화</p></div><em>✦</em></li><li><span>03</span><div><b>맞춤 레퍼런스</b><p>더 깊은 탐색을 위한 콘텐츠 추천</p></div><em>⌁</em></li><li><span>04</span><div><b>액션 플랜</b><p>지원 마감일까지 실행 가능한 체크리스트</p></div><em>✓</em></li></ul>
+      </section>
+
+      <section class="final-cta"><p class="section-label">YOUR STORY STARTS HERE</p><h2>당신의 가능성은 이미<br />오늘의 경험 속에 있어요.</h2><p>첫 기록을 남기고, 나만의 취업 방향을 발견해보세요.</p><a class="button primary" href="./workspace.html">무료로 취뽀log 시작하기 <span>→</span></a></section>
+    </main>
+
+    <footer><a class="logo" href="#top"><span class="logo-mark">C</span><strong>취뽀<span>log</span></strong></a><p>기록이 방향이 되는 취업 준비</p><small>© 2026 Team03. Made for Codex Community Korea Hackathon.</small></footer>
   </body>
 </html>
